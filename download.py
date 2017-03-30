@@ -1,22 +1,48 @@
 import os
 import re
-import urllib2
+import urllib.request
 import shutil
 import argparse
 import mistune
 import bs4 as BeautifulSoup
 
+
+def download_file(link, location, name):
+    try:
+        response = urllib.request.urlopen(link, timeout=500)
+        file = open(os.path.join(location, name), 'wb')
+        file_size = int(response.info()['Content-Length'])
+        downloaded_size = 0
+        block_size = 8192
+        while downloaded_size < file_size:
+            buffer = response.read(block_size)
+            if not buffer:
+                break
+            downloaded_size += len(buffer)
+            file.write(buffer)
+        file.close()
+    except urllib.error.HTTPError:
+        print('>>> Error 404: cannot be downloaded!\n')
+        raise
+    # except socket.timeout:
+    #     print(" ".join(("can't download", link, "due to connection timeout!")) )
+    except Exception as e:
+        print('Fail to download:\n' + e.message)
+        raise
+
 def download_pdf(link, location, name):
     try:
-        response = urllib2.urlopen(link, timeout=500)
-        file = open(os.path.join(location, name), 'w')
+        response = urllib.request.urlopen(link, timeout=500)
+        file = open(os.path.join(location, name), 'wb')
         file.write(response.read())
         file.close()
-    except urllib2.HTTPError:
+    except urllib.error.HTTPError:
         print('>>> Error 404: cannot be downloaded!\n') 
         raise   
     except socket.timeout:
         print(" ".join(("can't download", link, "due to connection timeout!")) )
+    except Exception as e:
+        print('Fail to download:\n' + e.message)
 
 def clean_pdf_link(link):
     if 'arxiv' in link:
@@ -25,7 +51,7 @@ def clean_pdf_link(link):
             link = '.'.join((link, 'pdf'))
     return link
 
-def clean_text(text, replacements = {' ': '_', '/': '_', '.': '', '"': ''}):
+def clean_text(text, replacements = {' ': '_', '/': '_', '.': '', '"': '', ':': '_', '\\': '_', '*': '_', '?': '_', '<': '_', '>':'_'}):
     for key, rep in replacements.items():
         text = text.replace(key, rep)
     return text    
@@ -66,7 +92,7 @@ if __name__ == '__main__':
     if results.overwrite and os.path.exists(output_directory):
         shutil.rmtree(output_directory)
 
-    with open('README.md') as readme:
+    with open('README.md', encoding='utf8') as readme:
         readme_html = mistune.markdown(readme.read())
         readme_soup = BeautifulSoup.BeautifulSoup(readme_html, "html.parser")
 
@@ -96,7 +122,8 @@ if __name__ == '__main__':
                             name = clean_text(point.text.split('[' + ext + ']')[0])
                             fullname = '.'.join((name, ext))
                             if not os.path.exists('/'.join((current_directory, fullname)) ):
-                               download_pdf(link, current_directory, '.'.join((name, ext)))
+                               # download_pdf(link, current_directory, '.'.join((name, ext)))
+                                download_file(link, current_directory, '.'.join((name, ext)))
                         except:
                             failures.append(point.text)
                         
