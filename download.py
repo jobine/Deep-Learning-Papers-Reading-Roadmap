@@ -122,7 +122,6 @@ if __name__ == '__main__':
                             name = clean_text(point.text.split('[' + ext + ']')[0])
                             fullname = '.'.join((name, ext))
                             if not os.path.exists('/'.join((current_directory, fullname)) ):
-                               # download_pdf(link, current_directory, '.'.join((name, ext)))
                                 download_file(link, current_directory, '.'.join((name, ext)))
                         except:
                             failures.append(point.text)
